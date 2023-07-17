@@ -18,8 +18,9 @@ class WidgetsList<T> extends StatefulWidget {
   final bool loading;
   final String? error;
   List<T?> items;
-  final Function? moreLoading;
+  final Widget? noItemFound;
   final Refresh? refresh;
+  final Widget? title;
 
   WidgetsList({Key? key,
     required this.builder,
@@ -30,7 +31,9 @@ class WidgetsList<T> extends StatefulWidget {
     this.loading = false,
     required this.items,
     this.error = null,
-    this.refresh
+    this.refresh,
+    this.noItemFound,
+    this.title
   })
       : super(key: key);
 
@@ -56,29 +59,9 @@ class _WidgetsListState<T> extends State<WidgetsList<T>> {
             child: Text(widget.error ?? ''),
           );
         }
-        if (widget.items.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // SizedBox(
-                //   width: 240,
-                //   height: 240,
-                //   child: SvgPicture.asset("assets/images/empty.svg"),
-                // ),
-                Text(
-                  "No product is found",
-                  textAlign: TextAlign.center,
-                  style: Theme
-                      .of(context)
-                      .textTheme
-                      .headline5,
-                )
-              ],
-            ),
-          );
-        }
+        // if (widget.items.isEmpty) {
+        //   return widget.noItemFound ?? const Center(child:Text("No item is found"));
+        // }
         return _buildProductList(widget.items);
       },
     );
@@ -113,9 +96,10 @@ class _WidgetsListState<T> extends State<WidgetsList<T>> {
           onRefresh: refresh,
           onLoading: loading,
           child: ListView(
+            scrollDirection: Axis.vertical,
+            shrinkWrap: true,
             // alignment: WrapAlignment.center,
             controller: _controller,
-            shrinkWrap: true,
             addAutomaticKeepAlives: false,
             children: _buildProducts(items),
           ),
@@ -123,7 +107,7 @@ class _WidgetsListState<T> extends State<WidgetsList<T>> {
             builder: (BuildContext context, LoadStatus? mode) {
               Widget body;
               if (mode == LoadStatus.idle) {
-                body = Text("pull up load");
+                body = Text("Pull up load");
               } else if (mode == LoadStatus.loading) {
                 body = CupertinoActivityIndicator();
               } else if (mode == LoadStatus.failed) {
@@ -152,7 +136,12 @@ class _WidgetsListState<T> extends State<WidgetsList<T>> {
   }
 
   List<Widget> _buildProducts(List<T> items) {
-    return [for (final item in items) widget.builder(context, item)];
+    return [...[widget.title ?? Container()], ...[
+      if (items.isNotEmpty) for (final item in items) widget.builder(
+          context, item)
+      else
+        const Center(child: Text("No item is found"))
+    ]];
   }
 
   onScroll() {
@@ -174,12 +163,12 @@ class _WidgetsListState<T> extends State<WidgetsList<T>> {
   }
 
   void loading() {
-    widget.loadMore?.call();
+    widget.loadMore?.call(context);
     _refreshController.loadComplete();
   }
 
   void refresh() {
-    widget.moreLoading?.call();
+    widget.load?.call(context);
     _refreshController.refreshCompleted();
   }
 }
